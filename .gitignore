@@ -1,0 +1,32 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors/IDE
+.vscode/
+.idea/
+.vs/
+
+# Dotnet build
+server/**/bin/
+server/**/obj/
+
+# Node
+client/node_modules/
+client/dist/
+
+# Logs/temp
+*.log
+logs/
+tmp/
+
+# Env and secrets (client)
+client/.env*
+
+# Uploads
+server/RealtimeChat.Api/wwwroot/uploads/
+
+# Misc
+*.user
+*.suo
+*.cache
