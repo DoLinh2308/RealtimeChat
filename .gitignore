@@ -30,3 +30,6 @@ server/RealtimeChat.Api/wwwroot/uploads/
 *.user
 *.suo
 *.cache
+
+#doc
+docs/Guide.md

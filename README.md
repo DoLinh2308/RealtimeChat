@@ -1,109 +1,123 @@
-RealtimeChat – Full‑Stack Realtime Chat (ASP.NET Core + React)
+RealtimeChat – Realtime Collaboration Stack (ASP.NET Core + React)
+=================================================================
 
-Overview
-- Backend: ASP.NET Core 8, SignalR, EF Core (PostgreSQL), JWT
-- Frontend: React (Vite) + Tailwind, SignalR client, WebRTC signaling
-- Infra: Dockerfiles, docker-compose, Nginx proxy for API and WebSockets
+RealtimeChat is a full-stack chat and collaboration reference built on ASP.NET Core 8 and React (Vite). It showcases a production-style architecture with SignalR realtime messaging, WebRTC call signaling, file uploads, responsive mobile UI, and Docker-based deployment.
 
-Key Features
-- Auth (JWT), user profiles with avatars
-- Conversations with private join code, direct messages (1-1)
-- Mentions (@user, @all/@here) + unread mention notifications
-- Reactions (emoji), typing indicators, read tracking
-- File/image upload (multi-select + drag-and-drop)
-- Reply threading (parent message), search messages, infinite scroll history
-- Realtime updates via SignalR (messages, reactions, typing)
+Highlights
+---------
+- **Backend**: ASP.NET Core 8, SignalR, EF Core/PostgreSQL, JWT auth, automatic migrations and room-code service.
+- **Frontend**: React + Vite + Tailwind, optimized for mobile/desktop with pastel theming, WebRTC call panel, mention highlighting, toast/typing indicators.
+- **Realtime**: SignalR hub for messages, reactions, presence, call signaling; optional WebRTC for 1–1/group video.
+- **Storage**: PostgreSQL schema with migrations; local file storage (uploads proxied via client). Easy to swap to S3/Blob.
+- **Deployment**: Dockerfiles for API & client, nginx reverse proxy, docs for bare-metal + ngrok previews.
 
-Quick Start (Docker)
-- Prereqs: Docker Desktop
-- Run: `docker compose up -d --build`
-- Services:
-  - API: http://localhost:8080
-  - Client: http://localhost:3000
+Quick Start (Docker Compose)
+----------------------------
+1. Install Docker Desktop (or Docker Engine + Compose v2).
+2. From the repository root run:
+   ```bash
+   docker compose up -d --build
+   ```
+3. Services (default ports):
+   - API: <http://localhost:8080>
+   - Client: <http://localhost:3000>
+   - PostgreSQL: localhost:5432 (user/pass `postgres`/`postgres`).
+4. Logs & lifecycle:
+   ```bash
+   docker compose logs -f api
+   docker compose restart client
+   docker compose down
+   ```
+5. First boot auto-applies EF Core migrations and seeds required tables.
 
-Default Proxy
-- From client:
-  - `/api` → API REST
-  - `/hubs` → SignalR Hub
-  - `/uploads` → Static uploaded files from API
+Local Development (no Docker)
+----------------------------
+### Requirements
+- .NET SDK 8.0+
+- Node.js 18+
+- PostgreSQL 14+ running on localhost (or point the connection string to another instance).
 
-Local Development
-- Backend: `cd server/RealtimeChat.Api && dotnet run`
-- Frontend: `cd client && npm i && npm run dev`
+### API
+```bash
+cd server/RealtimeChat.Api
+# optional: set ASPNETCORE_ENVIRONMENT=Development
+# update appsettings.Development.json or use environment variables (see below)
+dotnet watch run --urls http://127.0.0.1:5049
+```
 
-Local (No Docker/WSL)
-- Prereqs: .NET SDK 8, Node.js 18+, PostgreSQL 14+ running on `localhost:5432`.
-- Client proxy: `client/.env.development` sets `VITE_API_URL=http://localhost:5049`.
-- API DB: set `ConnectionStrings:Default` in `server/RealtimeChat.Api/appsettings.Development.json` or use default
-  `Host=localhost;Port=5432;Database=realtimechat;Username=postgres;Password=postgres`.
-- Run:
-  - API: `cd server/RealtimeChat.Api && dotnet run`
-  - Client: `cd client && npm i && npm run dev`
+### Client
+```bash
+cd client
+npm install
+npm run dev
+# Vite dev server -> http://localhost:3000
+```
+Create `client/.env.development` if you want to override the backend:
+```
+VITE_API_URL=http://127.0.0.1:5049
+VITE_GIPHY_KEY=your_optional_giphy_key
+```
 
-Create Database (no Docker)
-- Ensure PostgreSQL client is installed (psql): on Windows you can use `winget install -e --id PostgreSQL.PostgreSQL`.
-- Then run the helper script to create role + database and write the connection string:
-  - `powershell -ExecutionPolicy Bypass -File scripts/setup-db.ps1`
-- Options (defaults in parentheses):
-  - `-Host (localhost) -Port (5432)`
-  - `-AdminUser (postgres) -AdminPassword (postgres)`
-  - `-DbName (realtimechat) -AppUser (realtimechat) -AppPassword (realtimechat)`
-  - `-WriteAppSettings:$true` to write `appsettings.Development.json`
+Database Helpers
+----------------
+When running outside Docker you can use the PowerShell helper:
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/setup-db.ps1 -Host localhost -Port 5432 \
+  -AdminUser postgres -AdminPassword postgres -DbName realtimechat \
+  -AppUser realtimechat -AppPassword realtimechat -WriteAppSettings:$true
+```
+The script creates the login/database and optionally writes `appsettings.Development.json` with the connection string.
 
-Notes
-- On first boot, API applies EF Core migrations automatically.
-- File uploads stored under API `wwwroot/uploads` and proxied via client Nginx.
+Configuration Cheat Sheet
+-------------------------
+API (`server/RealtimeChat.Api/appsettings*.json` or environment variables):
+- `ConnectionStrings:Default` – PostgreSQL connection.
+- `JWT:Key` (>=32 chars), `JWT:Issuer` – JWT signing + issuer.
+- `CORS:Origins` or `CORS__Origin` – allowed origins for SPA/WebSocket.
+- `ROOM:Secret` – seed for deterministic room-code generation (defaults to `JWT:Key`).
+- `ASPNETCORE_URLS` – e.g. `http://+:8080` or `https://+:8443` for TLS.
 
-Environment (Dev)
-- API `server/RealtimeChat.Api/appsettings.Development.json`
-  - `ConnectionStrings:Default` → PostgreSQL connection
-  - `JWT:Key` → at least 32 chars (HMAC-SHA256)
-  - `JWT:Issuer` → token issuer
-  - `CORS:Origins` → e.g. `["http://localhost:3000","http://127.0.0.1:3000"]`
-  - `ROOM:Secret` → secret for generating room codes (defaults to `JWT:Key`)
-- Client `client/.env.local`
-  - `VITE_API_URL=http://127.0.0.1:5049`
-  - `VITE_GIPHY_KEY=YOUR_GIPHY_API_KEY` (optional)
+Client (`client/.env.*`):
+- `VITE_API_URL` – base URL used by axios/SignalR.
+- `VITE_GIPHY_KEY` – optional integration for GIF picker.
 
-Run Locally (no Docker/WSL)
-- API: `cd server/RealtimeChat.Api && dotnet run --urls http://127.0.0.1:5049`
-- Client: `cd client && npm run dev` → open `http://localhost:3000`
+Ngrok Preview (Ubuntu/Linux)
+----------------------------
+1. Install ngrok (`sudo snap install ngrok` or APT repo from ngrok docs).
+2. Authenticate: `ngrok config add-authtoken <token>`.
+3. Create `~/.config/ngrok/realtimechat.yml`:
+   ```yaml
+   version: "2"
+   authtoken: <token>
+   tunnels:
+     web:
+       proto: http
+       addr: 3000
+     api:
+       proto: http
+       addr: 8080
+   ```
+4. Start local services (`docker compose up` or dev servers) and run `ngrok start --all --config ~/.config/ngrok/realtimechat.yml`.
+5. Update `client/.env.development` with the generated API URL (e.g. `https://xxxx.ngrok-free.app`) then restart `npm run dev`.
 
-API Surface (Quick)
-- Auth: `POST /api/auth/register`, `POST /api/auth/login`
-- Users: `GET /api/users`, `GET /api/users/me`
-- Conversations:
-  - `POST /api/conversations` (returns Code), `GET /api/conversations`
-  - `GET /api/conversations/discover`, `POST /api/conversations/{id}/join { code }`
-  - `POST /api/conversations/direct { userId }`, `DELETE /api/conversations/{id}`
-  - `GET /api/conversations/{id}/members`, `GET /api/conversations/{id}/code`
-- Messages:
-  - `GET /api/messages/{conversationId}` (paged history)
-  - `POST /api/messages { ConversationId, Content, Type, ParentMessageId?, Metadata? }`
-  - `POST /api/messages/upload` (multipart/form-data: conversationId, file)
-  - `POST /api/messages/{conversationId}/read` (mark all read)
-  - `GET /api/messages/{conversationId}/search?q=...`
-  - `POST /api/messages/{id}/reactions`, `DELETE /api/messages/{id}/reactions/{emoji}`
-  - `GET /api/messages/mentions?unreadOnly=true`
+Testing & Quality
+-----------------
+- API unit/integration tests (if present) → `dotnet test server/RealtimeChat.Api`.
+- Frontend checks → `npm run lint` / `npm run build`.
+- CI via GitHub Actions (`.github/workflows/ci.yml`) builds both projects and runs tests.
 
-SignalR
-- Endpoint: `/hubs/chat`
-- Events from server: `message`, `typing`, `reaction`, `mention`
-- Client commands (Hub): `JoinConversation`, `LeaveConversation`, `Typing`, `SendMessage`, `Read`
+Deployment Notes
+----------------
+- **Docker**: build and push images (`docker build -t your/api server`, etc.) or ship the provided compose file to a VM.
+- **Reverse proxy**: terminate TLS at nginx/Caddy/Traefik; proxy `/api`, `/hubs`, `/uploads` to API; serve the static client bundle.
+- **Files**: Uploaded content lives in `server/RealtimeChat.Api/wwwroot/uploads`. Mount a persistent volume or redirect to cloud storage in production.
+- **Scaling SignalR**: add Redis backplane (`Microsoft.AspNetCore.SignalR.StackExchangeRedis`) or use a managed service (Azure SignalR) when running multiple API instances.
+- ** TURN/WebRTC**: Provide public TURN credentials (coturn) for reliable calling across NAT/firewalls.
 
-Documentation
-- See `docs/Guide.md` for theory, labs, and production checklist.
-- See `docs/API.md` for endpoint details and payloads.
+Documentation Map
+-----------------
+- `docs/Guide.md` – architecture deep dive, realtime flows, lab exercises, production checklist.
+- `docs/API.md` – REST + SignalR contract reference with payloads.
+- `scripts/` – helper utilities (database bootstrap, etc.).
 
-GitHub – Initialize and Push
-- Create a repo on GitHub (empty, without README/License to avoid conflicts)
-- In project root:
-  - `git init`
-  - `git add .`
-  - `git commit -m "chore: initial import RealtimeChat"`
-  - `git branch -M main`
-  - `git remote add origin https://github.com/<your-user>/<your-repo>.git`
-  - `git push -u origin main`
-
-CI (GitHub Actions)
-- A ready-made workflow is provided at `.github/workflows/ci.yml` that builds the API and client.
+Have fun exploring and customising! Contributions, issue reports, and feature ideas are always welcome.

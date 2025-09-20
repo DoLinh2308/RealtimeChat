@@ -25,6 +25,7 @@ export default function App(){
   const [modal, setModal] = useState(null)
   const [toasts, setToasts] = useState([])
   const [showMembers, setShowMembers] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   const [profileMenuOpen, setProfileMenuOpen] = useState(false)
   const [incomingCall, setIncomingCall] = useState(null)
   const [callInfo, setCallInfo] = useState({ conversationId: null, active: false })
@@ -970,8 +971,8 @@ export default function App(){
   const activeMembers = members
 
   return (
-    <div className="relative h-screen flex overflow-hidden bg-[#f3f2fb] dark:bg-[#15173a] text-gray-900 dark:text-gray-100">
-      <nav className="hidden md:flex w-20 flex-col items-center gap-6 bg-[#2f2b6a] text-white py-6 shadow-lg">
+    <div className="relative min-h-screen md:h-screen flex overflow-hidden bg-[#fdf2f8] dark:bg-[#15173a] text-gray-900 dark:text-gray-100">
+      <nav className="hidden md:flex w-20 flex-col items-center gap-6 bg-[#e9d5ff] text-[#4c1d95] py-6 shadow-lg">
         <div className="text-xl font-semibold">RC</div>
         <button className="w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 transition flex items-center justify-center" title={dark ? 'Chế độ sáng' : 'Chế độ tối'} onClick={()=>setDark(d=>!d)}>{dark ? '☀️' : '🌙'}</button>
         <button className="w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 transition flex items-center justify-center" title="Tạo cuộc trò chuyện" onClick={()=>setModal({ type: 'create-conversation', form: { name: '', type: 1 } })}>＋</button>
@@ -1007,7 +1008,8 @@ export default function App(){
           {mentionCount>0 && <span className="absolute -top-1 -right-1 bg-red-600 text-white rounded-full px-1 text-[10px]">{mentionCount}</span>}
         </button>
       </nav>
-      <aside className="w-80 max-w-sm bg-white/80 dark:bg-white/10 backdrop-blur border-r border-white/40 dark:border-black/40 flex flex-col">
+      {sidebarOpen && <div className="fixed inset-0 z-20 bg-black/30 backdrop-blur-sm md:hidden" onClick={()=>setSidebarOpen(false)}></div>}
+      <aside className={`flex flex-col fixed inset-y-0 left-0 z-30 w-full max-w-xs bg-white/90 dark:bg-white/10 backdrop-blur border-r border-white/40 dark:border-black/40 transition-transform duration-200 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 md:static md:z-auto md:w-80 md:max-w-sm md:flex`}>
         <div className="px-5 py-5 border-b border-slate-200/70 dark:border-slate-800/60 flex items-center justify-between">
           <div>
             <div className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Cuộc trò chuyện</div>
@@ -1023,7 +1025,7 @@ export default function App(){
             const isActive = String(activeId) === String(id)
             const conversationName = c.name || c.Name
             return (
-              <div key={id} onClick={()=>openConv(c)} className={`rounded-xl px-4 py-3 cursor-pointer transition ${isActive ? 'bg-[#ede8ff] text-[#2f2b6a] shadow-md' : 'hover:bg-white/70 dark:hover:bg-white/5'}`}>
+              <div key={id} onClick={()=>{ openConv(c); setSidebarOpen(false) }} className={`rounded-xl px-4 py-3 cursor-pointer transition ${isActive ? 'bg-[#e9d5ff] text-[#5b21b6] shadow-md' : 'hover:bg-white/70 dark:hover:bg-white/5'}`}>
                 <div className="flex items-center justify-between gap-2">
                   <div>
                     <div className="font-semibold">{conversationName}</div>
@@ -1054,24 +1056,27 @@ export default function App(){
         )}
       </aside>
       <main className="flex-1 flex flex-col bg-white/90 dark:bg-[#1f2145] backdrop-blur">
-        <header className="px-8 py-4 border-b border-slate-200/70 dark:border-slate-800/60 flex flex-col gap-3 bg-white/80 dark:bg-[#24285c]/70 backdrop-blur z-10">
+        <header className="px-4 py-4 md:px-8 border-b border-slate-200/70 dark:border-slate-800/60 flex flex-col gap-3 bg-white/80 dark:bg-[#24285c]/70 backdrop-blur z-10">
           <div className="flex items-center justify-between gap-3">
-            <div>
-              <div className="text-2xl font-semibold">{active ? (active.name || active.Name) : 'Realtime Chat'}</div>
-              {active && <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">{members.length} thành viên · {(active.type||active.Type)===0?'Direct':(active.type||active.Type)===1?'Group':'Channel'}</div>}
+            <div className="flex items-center gap-2">
+              <button className="md:hidden rounded-full bg-white/80 border border-slate-200 px-3 py-2 text-[#4c1d95]" onClick={()=>setSidebarOpen(true)}>☰</button>
+              <div>
+                <div className="text-xl md:text-2xl font-semibold">{active ? (active.name || active.Name) : 'Realtime Chat'}</div>
+                {active && <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">{members.length} thành viên · {(active.type||active.Type)===0?'Direct':(active.type||active.Type)===1?'Group':'Channel'}</div>}
+              </div>
             </div>
             <div className="flex items-center gap-2 flex-wrap justify-end">
               <div className="flex items-center gap-2 rounded-full bg-white/80 dark:bg-[#1f2145]/80 border border-slate-200 dark:border-slate-700 px-3 py-1.5 shadow-sm">
                 <input value={searchQ} onChange={e=>setSearchQ(e.target.value)} onKeyDown={e=>{ if (e.key==='Enter'){ e.preventDefault(); handleGroupSearch() } }} placeholder="Tìm nhóm..." className="bg-transparent outline-none text-sm" />
-                <button className="text-xs px-3 py-1 rounded-full bg-[#464eb8] text-white" onClick={handleGroupSearch}>Tìm</button>
+                <button className="text-xs px-3 py-1 rounded-full bg-[#a78bfa] text-white" onClick={handleGroupSearch}>Tìm</button>
               </div>
               {active && (
                 <>
-                  <button className="flex items-center gap-2 rounded-full bg-[#3a2d96]/10 text-[#3a2d96] px-3 py-1.5 hover:bg-[#3a2d96]/20 transition" onClick={()=>setShowMembers(true)} title="Xem thành viên">
+                  <button className="flex items-center gap-2 rounded-full bg-[#a78bfa]/20 text-[#5b21b6] px-3 py-1.5 hover:bg-[#a78bfa]/30 transition" onClick={()=>setShowMembers(true)} title="Xem thành viên">
                     <span className="text-lg">👥</span>
                     <span className="hidden md:inline font-medium">Thành viên</span>
                   </button>
-                  <button className="flex items-center gap-2 rounded-full bg-[#3a2d96]/10 text-[#3a2d96] px-3 py-1.5 hover:bg-[#3a2d96]/20 transition disabled:opacity-50" disabled={callLoading} onClick={startCall} title="Gọi nhóm">
+                  <button className="flex items-center gap-2 rounded-full bg-[#a78bfa]/20 text-[#5b21b6] px-3 py-1.5 hover:bg-[#a78bfa]/30 transition disabled:opacity-50" disabled={callLoading} onClick={startCall} title="Gọi nhóm">
                     <span className="text-lg">📞</span>
                     <span className="hidden md:inline font-medium">Gọi</span>
                   </button>
@@ -1136,7 +1141,7 @@ export default function App(){
             </div>
           </div>
         )}
-        <div className="flex-1 overflow-auto px-8 py-6 space-y-4" onDragOver={e=>{ e.preventDefault() }} onDrop={async e=>{ e.preventDefault(); await onUpload(e) }} onScroll={async e=>{
+        <div className="flex-1 overflow-auto px-4 md:px-8 py-6 space-y-4" onDragOver={e=>{ e.preventDefault() }} onDrop={async e=>{ e.preventDefault(); await onUpload(e) }} onScroll={async e=>{
           const el = e.currentTarget
           if (el.scrollTop < 50 && hasMoreRef.current && active){
             const convId = getConversationId(active)
@@ -1166,13 +1171,13 @@ export default function App(){
             return (
               <div key={messageId} className={`flex gap-3 ${mine ? 'justify-end' : ''}`}>
                 {!mine && <img src={avatar} className="w-9 h-9 rounded-full self-end shadow-sm" />}
-                <div className={`group max-w-[70%] rounded-2xl px-4 py-3 shadow-sm ${mine ? 'bg-[#464eb8] text-white rounded-br-md' : 'bg-white dark:bg-[#2b2f55] text-slate-900 dark:text-slate-100 rounded-bl-md'}`}>
+                <div className={`group max-w-[70%] rounded-2xl px-4 py-3 shadow-sm ${mine ? 'bg-white text-slate-900 dark:bg-slate-100 dark:text-slate-900 border border-slate-200 rounded-br-md' : 'bg-sky-100 text-slate-900 dark:bg-sky-300 dark:text-slate-900 border border-sky-200 rounded-bl-md'}`}>
                   <div className="flex items-center justify-between gap-3 mb-1">
-                    {!mine && <div className="text-xs font-semibold text-[#2f2b6a] dark:text-slate-200">{name}</div>}
+                    {!mine && <div className="text-xs font-semibold text-[#5b21b6] dark:text-slate-200">{name}</div>}
                     <div className="text-[11px] text-slate-400 dark:text-slate-300">{createdAt}</div>
                   </div>
                   {m.parentMessageId && <div className="text-[11px] text-slate-400 dark:text-slate-300 mb-1">↪ Reply</div>}
-                  <div className="text-sm whitespace-pre-wrap leading-relaxed">{m.type===1 ? (<img src={m.metadata} className="max-h-64 rounded-lg" />) : renderContent(m.content)}</div>
+                  <div className="text-sm whitespace-pre-wrap leading-relaxed">{m.type===1 ? (<img src={m.metadata} className="max-h-64 rounded-lg" />) : renderContent(m.content, { mine })}</div>
                   <MessageReactions messageId={messageId} reactions={reactions[messageId]||{}} onReact={async emoji=>{ try { await react(messageId, emoji) } catch (err) { console.warn('react failed', err) } }} onUnreact={async emoji=>{ try { await unreact(messageId, emoji) } catch (err) { console.warn('unreact failed', err) } }} />
                   <div className="mt-2 flex items-center gap-3 text-[12px] opacity-0 group-hover:opacity-100 transition">
                     <button onClick={()=>setReplyTo(m)} className="hover:underline">↩️ Trả lời</button>
@@ -1185,7 +1190,7 @@ export default function App(){
           })}
         </div>
         {active && (
-          <div className="relative px-8 pb-6 pt-4 border-t border-slate-200/70 dark:border-slate-800/60 bg-white/90 dark:bg-[#24285c]/60">
+          <div className="relative px-4 md:px-8 pb-6 pt-4 border-t border-slate-200/70 dark:border-slate-800/60 bg-white/90 dark:bg-[#24285c]/60">
             {replyTo && (
               <div className="absolute -top-12 left-8 right-8 text-xs bg-white/90 dark:bg-[#2b2f55] rounded-lg px-3 py-2 shadow flex justify-between items-center">
                 <div>Trả lời: {(replyTo.content||'').slice(0,60)}</div>
@@ -1193,10 +1198,10 @@ export default function App(){
               </div>
             )}
             <div className="flex flex-wrap items-center gap-3">
-              <button className="w-10 h-10 rounded-full bg-[#3a2d96]/10 text-[#3a2d96] hover:bg-[#3a2d96]/20 transition flex items-center justify-center" onClick={()=>fileInputRef.current?.click()} title="Gửi ảnh">🖼️</button>
+              <button className="w-10 h-10 rounded-full bg-[#a78bfa]/20 text-[#5b21b6] hover:bg-[#a78bfa]/30 transition flex items-center justify-center" onClick={()=>fileInputRef.current?.click()} title="Gửi ảnh">🖼️</button>
               <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={onUpload} />
-              <input value={text} onChange={e=>onTyping(e.target.value)} onKeyDown={e=>{ if (e.key==='Enter'){ e.preventDefault(); onSend() } }} className="flex-1 min-w-[200px] px-4 py-2 rounded-full border border-slate-300 dark:border-slate-600 bg-white/80 dark:bg-[#1f2145] focus:outline-none focus:ring-2 focus:ring-[#464eb8]" placeholder="Nhập tin nhắn... @mention, /giphy ..." />
-              <button onClick={onSend} className="px-5 py-2 rounded-full bg-[#464eb8] text-white font-medium hover:bg-[#3a3fa6] transition">Gửi</button>
+              <input value={text} onChange={e=>onTyping(e.target.value)} onKeyDown={e=>{ if (e.key==='Enter'){ e.preventDefault(); onSend() } }} className="flex-1 min-w-[200px] px-4 py-2 rounded-full border border-slate-300 dark:border-slate-600 bg-white/80 dark:bg-[#1f2145] focus:outline-none focus:ring-2 focus:ring-[#c4b5fd]" placeholder="Nhập tin nhắn... @mention, /giphy ..." />
+              <button onClick={onSend} className="px-5 py-2 rounded-full bg-[#a78bfa] text-[#4c1d95] font-medium hover:bg-[#c4b5fd] transition">Gửi</button>
             </div>
             {mentionOpen && (
               <div className="absolute bottom-20 left-32 bg-white dark:bg-[#1f2145] rounded-lg shadow-lg min-w-[240px] max-h-60 overflow-auto border border-slate-200 dark:border-slate-700">
@@ -1218,7 +1223,7 @@ export default function App(){
             )}
           </div>
         )}
-        <div className="px-8 pb-3 text-xs text-slate-500 h-6">{Object.values(typingUsers).some(v=>v) && 'Đang nhập...'}</div>
+        <div className="px-4 md:px-8 pb-3 text-xs text-slate-500 h-6">{Object.values(typingUsers).some(v=>v) && 'Đang nhập...'}</div>
       </main>
       {showMembers && (
         <div className="fixed inset-0 z-40 flex justify-end bg-black/50 backdrop-blur-sm" onClick={()=>setShowMembers(false)}>
@@ -1229,12 +1234,14 @@ export default function App(){
             </div>
             <div className="space-y-4 overflow-y-auto pr-2">
               {activeMembers.map(m => {
-                const online = m.isOnline ?? m.IsOnline
+                const id = m.userId || m.UserId
+                const isSelf = user?.id && id ? String(id) === String(user.id) : false
+                const online = isSelf ? true : Boolean(m.isOnline ?? m.IsOnline)
                 const lastSeen = m.lastSeenAt || m.LastSeenAt
                 const display = m.displayName || m.DisplayName || m.username || m.Username
                 const username = m.username || m.Username
                 const avatar = m.avatarUrl || m.AvatarUrl || '/default-avatar.svg'
-                const id = m.userId || m.UserId
+                const statusText = online ? (isSelf ? 'Bạn đang hoạt động' : 'Đang hoạt động') : (lastSeen ? `Hoạt động ${formatLastSeen(lastSeen)}` : 'Ngoại tuyến')
                 return (
                   <div key={id} className="flex items-center gap-3 rounded-xl bg-white/80 dark:bg-white/5 px-3 py-2 shadow-sm">
                     <div className="relative">
@@ -1244,7 +1251,7 @@ export default function App(){
                     <div className="flex-1">
                       <div className="text-sm font-medium text-slate-900 dark:text-slate-100">{display}</div>
                       <div className="text-xs text-slate-500 dark:text-slate-400">@{username}</div>
-                      <div className="text-xs text-slate-500 dark:text-slate-400">{online ? 'Đang hoạt động' : (lastSeen ? `Hoạt động ${formatLastSeen(lastSeen)}` : 'Ngoại tuyến')}</div>
+                      <div className="text-xs text-slate-500 dark:text-slate-400">{statusText}</div>
                     </div>
                   </div>
                 )
@@ -1356,11 +1363,13 @@ function formatLastSeen(value){
   return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 }
 
-function renderContent(text){
+function renderContent(text, options = {}){
+  const { mine } = options
   const parts = String(text||'').split(/(@[A-Za-z0-9_]+)/g)
   return parts.map((p,i)=>{
     if (p.startsWith && p.startsWith('@') && p.length>1){
-      return <span key={i} className="text-[#464eb8] font-medium">{p}</span>
+      const mentionClass = mine ? 'text-[#5b21b6] font-semibold' : 'text-[#0f172a] font-semibold bg-white/60 dark:bg-white/30 px-1 rounded'
+      return <span key={i} className={mentionClass}>{p}</span>
     }
     return <span key={i}>{p}</span>
   })

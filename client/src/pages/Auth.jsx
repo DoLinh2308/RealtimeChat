@@ -2,9 +2,9 @@ import React, { useState } from 'react'
 import { login, register } from '../lib/api'
 
 const gradients = [
-  'from-[#4f46e5] via-[#7c3aed] to-[#f472b6]',
-  'from-[#0ea5e9] via-[#6366f1] to-[#a855f7]',
-  'from-[#14b8a6] via-[#22d3ee] to-[#818cf8]'
+  'from-[#fce7f3] via-[#ede9fe] to-[#c7d2fe]',
+  'from-[#fef3c7] via-[#fde68a] to-[#bfdbfe]',
+  'from-[#dcfce7] via-[#bae6fd] to-[#fbcfe8]'
 ]
 
 export default function Auth() {
@@ -57,7 +57,7 @@ export default function Auth() {
     <div className={`min-h-screen flex items-center justify-center bg-gradient-to-br ${gradient} px-4 py-6`}>
 
       <div className="max-w-5xl w-full grid md:grid-cols-2 gap-8 items-center">
-        <div className="hidden md:flex flex-col gap-4 text-white">
+        <div className="hidden md:flex flex-col gap-4 text-[#4c1d95]">
           <h1 className="text-4xl font-extrabold drop-shadow-sm">Realtime Chat</h1>
           <p className="text-lg opacity-90">Trò chuyện, gọi nhóm và cộng tác theo thời gian thực với giao diện lấy cảm hứng từ Microsoft Teams.</p>
           <div className="space-y-2 text-sm opacity-80">
@@ -68,31 +68,31 @@ export default function Auth() {
         </div>
         <div className="bg-white/90 backdrop-blur rounded-3xl shadow-xl p-8 md:p-10 space-y-6">
           <div>
-            <div className="text-sm font-medium text-indigo-500 uppercase tracking-wide">{isLogin ? 'Chào mừng trở lại' : 'Tạo tài khoản mới'}</div>
-            <h2 className="text-2xl font-semibold text-slate-800 mt-1">{isLogin ? 'Đăng nhập để tiếp tục' : 'Tham gia cộng đồng của chúng tôi'}</h2>
+            <div className="text-sm font-medium text-[#7c3aed] uppercase tracking-wide">{isLogin ? 'Chào mừng trở lại' : 'Tạo tài khoản mới'}</div>
+            <h2 className="text-2xl font-semibold text-[#3b0764] mt-1">{isLogin ? 'Đăng nhập để tiếp tục' : 'Tham gia cộng đồng của chúng tôi'}</h2>
           </div>
           <form className="space-y-5" onSubmit={submit}>
             <div className="space-y-2">
               <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Tên đăng nhập</label>
-              <input value={form.username} onChange={handleChange('username')} placeholder="yourname" className="w-full rounded-xl border border-slate-200 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+              <input value={form.username} onChange={handleChange('username')} placeholder="yourname" className="w-full rounded-xl border border-slate-200 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#c4b5fd]" />
             </div>
             {!isLogin && (
               <div className="space-y-2">
                 <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Tên hiển thị</label>
-                <input value={form.displayName} onChange={handleChange('displayName')} placeholder="Tên bạn bè nhìn thấy" className="w-full rounded-xl border border-slate-200 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+                <input value={form.displayName} onChange={handleChange('displayName')} placeholder="Tên bạn bè nhìn thấy" className="w-full rounded-xl border border-slate-200 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#c4b5fd]" />
               </div>
             )}
             <div className="space-y-2">
               <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Mật khẩu</label>
-              <input type="password" value={form.password} onChange={handleChange('password')} placeholder="•••••••" className="w-full rounded-xl border border-slate-200 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+              <input type="password" value={form.password} onChange={handleChange('password')} placeholder="•••••••" className="w-full rounded-xl border border-slate-200 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#c4b5fd]" />
             </div>
             {error && <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-2">{error}</div>}
             {success && <div className="text-sm text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-2">{success}</div>}
-            <button type="submit" disabled={loading} className="w-full rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3 transition disabled:opacity-50 disabled:cursor-not-allowed">
+            <button type="submit" disabled={loading} className="w-full rounded-xl bg-[#a78bfa] hover:bg-[#c4b5fd] text-[#4c1d95] font-semibold py-3 transition disabled:opacity-50 disabled:cursor-not-allowed">
               {loading ? 'Đang xử lý...' : isLogin ? 'Đăng nhập' : 'Đăng ký'}
             </button>
           </form>
-          <button type="button" onClick={toggleMode} className="w-full text-sm text-indigo-600 hover:text-indigo-500">
+          <button type="button" onClick={toggleMode} className="w-full text-sm text-[#7c3aed] hover:text-[#5b21b6]">
             {isLogin ? 'Chưa có tài khoản? Đăng ký ngay' : 'Đã có tài khoản? Đăng nhập'}
           </button>
         </div>
@@ -100,5 +100,3 @@ export default function Auth() {
     </div>
   )
 }
-
-
