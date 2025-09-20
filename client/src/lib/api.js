@@ -12,9 +12,11 @@ api.interceptors.request.use((config) => {
 export const login = (username, password) => api.post('/auth/login', { username, password })
 export const register = (username, password, displayName) => api.post('/auth/register', { username, password, displayName })
 export const me = () => api.get('/users/me')
+export const listUsers = () => api.get('/users')
 export const listConversations = () => api.get('/conversations')
 export const createConversation = (payload) => api.post('/conversations', payload)
 export const discoverConversations = () => api.get('/conversations/discover')
+export const searchConversations = (q) => api.get('/conversations/search', { params: { q } })
 export const joinConversation = (id, code) => api.post(`/conversations/${id}/join`, { code })
 export const directConversation = (userId) => api.post('/conversations/direct', { userId })
 export const deleteConversation = (id) => api.delete(`/conversations/${id}`)
@@ -33,3 +35,13 @@ export const upload = (conversationId, file) => {
 export const markRead = (conversationId) => api.post(`/messages/${conversationId}/read`)
 export const searchMessages = (conversationId, q, page=1, pageSize=50) => api.get(`/messages/${conversationId}/search`, { params: { q, page, pageSize } })
 export const mentionFeed = (unreadOnly=true, page=1, pageSize=50) => api.get('/messages/mentions', { params: { unreadOnly, page, pageSize } })
+export const updateProfile = (payload) => api.put('/users/me', payload)
+export const uploadAvatarImage = (file) => {
+  const form = new FormData()
+  form.append('file', file)
+  return api.post('/users/avatar', form)
+}
+
+
+
+

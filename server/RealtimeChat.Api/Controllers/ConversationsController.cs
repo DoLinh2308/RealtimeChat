@@ -1,4 +1,6 @@
+using System;
 using System.Security.Claims;
+using System.Linq;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -11,7 +13,7 @@ namespace RealtimeChat.Api.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
-public class ConversationsController(AppDbContext db, IRoomCodeService roomCodes) : ControllerBase
+public class ConversationsController(AppDbContext db, IRoomCodeService roomCodes, PresenceService presence) : ControllerBase
 {
     private Guid UserId => Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
@@ -58,6 +60,39 @@ public class ConversationsController(AppDbContext db, IRoomCodeService roomCodes
         return Ok(all);
     }
 
+    [HttpGet("search")]
+    public async Task<IActionResult> Search([FromQuery] string q)
+    {
+        if (string.IsNullOrWhiteSpace(q))
+        {
+            return Ok(Array.Empty<object>());
+        }
+
+        q = q.Trim();
+        var matches = await db.Conversations
+            .Where(c => EF.Functions.ILike(c.Name, $"%{q}%"))
+            .Select(c => new { c.Id, c.Name, c.Type })
+            .OrderBy(c => c.Name)
+            .Take(20)
+            .ToListAsync();
+
+        var joinedIds = await db.ConversationMembers
+            .Where(cm => cm.UserId == UserId && matches.Select(m => m.Id).Contains(cm.ConversationId))
+            .Select(cm => cm.ConversationId)
+            .ToListAsync();
+
+        var result = matches
+            .Select(m => new
+            {
+                m.Id,
+                m.Name,
+                m.Type,
+                IsMember = joinedIds.Contains(m.Id)
+            })
+            .ToList();
+
+        return Ok(result);
+    }
     // Join as a member (self-service)
     [HttpPost("{id:guid}/join")]
     public async Task<IActionResult> Join(Guid id, [FromBody] JoinDto dto)
@@ -165,9 +200,22 @@ public class ConversationsController(AppDbContext db, IRoomCodeService roomCodes
         if (!isMember) return Forbid();
         var members = await db.ConversationMembers
             .Where(cm => cm.ConversationId == id)
-            .Select(cm => new { cm.UserId, cm.User.Username, cm.User.DisplayName, cm.User.AvatarUrl })
+            .Select(cm => new { cm.UserId, cm.User.Username, cm.User.DisplayName, cm.User.AvatarUrl, cm.User.LastSeenAt })
             .ToListAsync();
-        return Ok(members);
+
+        var enriched = members
+            .Select(m => new
+            {
+                m.UserId,
+                m.Username,
+                m.DisplayName,
+                m.AvatarUrl,
+                m.LastSeenAt,
+                IsOnline = m.UserId == UserId ? true : presence.IsOnline(m.UserId)
+            })
+            .ToList();
+
+        return Ok(enriched);
     }
 
     [HttpGet("{id:guid}/code")]
@@ -179,3 +227,10 @@ public class ConversationsController(AppDbContext db, IRoomCodeService roomCodes
         return Ok(new { Code = code });
     }
 }
+
+
+
+
+
+
+

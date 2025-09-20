@@ -1,16 +1,22 @@
+using System;
 using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RealtimeChat.Api.Data;
+using RealtimeChat.Api.Services;
 
 namespace RealtimeChat.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
-public class UsersController(AppDbContext db, IWebHostEnvironment env) : ControllerBase
+public class UsersController(AppDbContext db, IWebHostEnvironment env, PresenceService presence) : ControllerBase
 {
+    public record UpdateProfileDto(string? DisplayName, string? Username, string? CurrentPassword, string? NewPassword);
+
     [HttpGet]
     public async Task<IActionResult> List()
     {
@@ -21,12 +27,48 @@ public class UsersController(AppDbContext db, IWebHostEnvironment env) : Control
             .ToListAsync();
         return Ok(users);
     }
+
     [HttpGet("me")]
     public async Task<IActionResult> Me()
     {
         var id = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var user = await db.Users.FindAsync(id);
         return Ok(new { user!.Id, user.Username, user.DisplayName, user.AvatarUrl });
+    }
+
+    [HttpPut("me")]
+    public async Task<IActionResult> UpdateMe([FromBody] UpdateProfileDto dto)
+    {
+        var id = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var user = await db.Users.FindAsync(id);
+        if (user == null) return NotFound();
+
+        if (!string.IsNullOrWhiteSpace(dto.Username) && !string.Equals(dto.Username, user.Username, StringComparison.OrdinalIgnoreCase))
+        {
+            var exists = await db.Users.AnyAsync(u => u.Username == dto.Username && u.Id != id);
+            if (exists)
+            {
+                return BadRequest(new { message = "Username already exists" });
+            }
+            user.Username = dto.Username!;
+        }
+
+        if (dto.DisplayName != null)
+        {
+            user.DisplayName = string.IsNullOrWhiteSpace(dto.DisplayName) ? null : dto.DisplayName.Trim();
+        }
+
+        if (!string.IsNullOrWhiteSpace(dto.NewPassword))
+        {
+            if (string.IsNullOrWhiteSpace(dto.CurrentPassword) || !string.Equals(user.PasswordHash, Hash(dto.CurrentPassword)))
+            {
+                return BadRequest(new { message = "Mật khẩu hiện tại không đúng" });
+            }
+            user.PasswordHash = Hash(dto.NewPassword);
+        }
+
+        await db.SaveChangesAsync();
+        return Ok(new { user.Id, user.Username, user.DisplayName, user.AvatarUrl });
     }
 
     [HttpPost("avatar")]
@@ -48,4 +90,15 @@ public class UsersController(AppDbContext db, IWebHostEnvironment env) : Control
         await db.SaveChangesAsync();
         return Ok(new { user.AvatarUrl });
     }
+
+    private static string Hash(string input)
+    {
+        using var sha = SHA256.Create();
+        var bytes = sha.ComputeHash(Encoding.UTF8.GetBytes(input));
+        return Convert.ToHexString(bytes);
+    }
 }
+
+
+
+

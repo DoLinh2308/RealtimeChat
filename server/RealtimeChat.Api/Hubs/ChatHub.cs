@@ -12,21 +12,50 @@ namespace RealtimeChat.Api.Hubs;
 public class ChatHub(AppDbContext db, PresenceService presence) : Hub
 {
     private Guid UserId => Guid.Parse(Context.User!.FindFirstValue(ClaimTypes.NameIdentifier)!);
+    private async Task EnsureMember(Guid conversationId)
+    {
+        var isMember = await db.ConversationMembers.AnyAsync(cm => cm.ConversationId == conversationId && cm.UserId == UserId);
+        if (!isMember)
+        {
+            throw new HubException("Not a member of this conversation");
+        }
+    }
+
 
     public override async Task OnConnectedAsync()
     {
         presence.UserConnected(UserId, Context.ConnectionId);
+
+        var user = await db.Users.FindAsync(UserId);
+        if (user != null)
+        {
+            user.LastSeenAt = DateTime.UtcNow;
+            await db.SaveChangesAsync();
+        }
+
         await base.OnConnectedAsync();
     }
 
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
         presence.UserDisconnected(UserId, Context.ConnectionId);
+
+        if (!presence.IsOnline(UserId))
+        {
+            var user = await db.Users.FindAsync(UserId);
+            if (user != null)
+            {
+                user.LastSeenAt = DateTime.UtcNow;
+                await db.SaveChangesAsync();
+            }
+        }
+
         await base.OnDisconnectedAsync(exception);
     }
 
     public async Task JoinConversation(Guid conversationId)
     {
+        await EnsureMember(conversationId);
         await Groups.AddToGroupAsync(Context.ConnectionId, GroupName(conversationId));
     }
 
@@ -37,11 +66,13 @@ public class ChatHub(AppDbContext db, PresenceService presence) : Hub
 
     public async Task Typing(Guid conversationId, bool isTyping)
     {
+        await EnsureMember(conversationId);
         await Clients.Group(GroupName(conversationId)).SendAsync("typing", new { conversationId, userId = UserId, isTyping });
     }
 
     public async Task SendMessage(Guid conversationId, string content, MessageType type = MessageType.Text, Guid? parentMessageId = null, int? ephemeralSeconds = null, string? metadata = null)
     {
+        await EnsureMember(conversationId);
         var sender = await db.Users.FindAsync(UserId);
         var message = new Message
         {
@@ -74,6 +105,7 @@ public class ChatHub(AppDbContext db, PresenceService presence) : Hub
 
     public async Task Read(Guid conversationId, Guid messageId)
     {
+        await EnsureMember(conversationId);
         var read = await db.MessageReads.FindAsync(messageId, UserId);
         if (read == null)
         {
@@ -83,6 +115,29 @@ public class ChatHub(AppDbContext db, PresenceService presence) : Hub
         await Clients.Group(GroupName(conversationId)).SendAsync("read", new { conversationId, messageId, userId = UserId });
     }
 
+    public async Task StartCall(Guid conversationId)
+    {
+        await EnsureMember(conversationId);
+        await Clients.Group(GroupName(conversationId)).SendAsync("call/start", new { conversationId, from = UserId });
+    }
+
+    public async Task JoinCall(Guid conversationId)
+    {
+        await EnsureMember(conversationId);
+        await Clients.Group(GroupName(conversationId)).SendAsync("call/join", new { conversationId, userId = UserId });
+    }
+
+    public async Task LeaveCall(Guid conversationId)
+    {
+        await EnsureMember(conversationId);
+        await Clients.Group(GroupName(conversationId)).SendAsync("call/leave", new { conversationId, userId = UserId });
+    }
+
+    public async Task EndCall(Guid conversationId)
+    {
+        await EnsureMember(conversationId);
+        await Clients.Group(GroupName(conversationId)).SendAsync("call/end", new { conversationId, from = UserId });
+    }
     // WebRTC signaling
     public async Task SendOffer(Guid toUserId, object offer)
         => await Clients.User(toUserId.ToString()).SendAsync("webrtc/offer", new { from = UserId, offer });
@@ -95,3 +150,7 @@ public class ChatHub(AppDbContext db, PresenceService presence) : Hub
 
     private static string GroupName(Guid id) => $"conv:{id}";
 }
+
+
+
+
