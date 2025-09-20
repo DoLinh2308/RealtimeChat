@@ -121,3 +121,6 @@ Documentation Map
 - `scripts/` – helper utilities (database bootstrap, etc.).
 
 Have fun exploring and customising! Contributions, issue reports, and feature ideas are always welcome.
+
+
+
